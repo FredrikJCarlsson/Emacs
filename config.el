@@ -86,8 +86,25 @@
 
 
 (menu-bar--display-line-numbers-mode-relative)
-;;(minimap-mode 1)
-(set-face-attribute 'default nil :height 130)
+
+
+
+(set-face-attribute 'default nil
+  :font "Hack Nerd Font Mono"
+  :height 120
+  :weight 'medium)
+(set-face-attribute 'font-lock-comment-face nil
+  :slant 'italic)
+
+;; Uncomment the following line if line spacing needs adjusting.
+(setq-default line-spacing 0.12)
+
+;; Needed if using emacsclient. Otherwise, your fonts will be smaller than expected.
+(add-to-list 'default-frame-alist '(font . "Hack Nerd Font Mono"))
+;; changes certain keywords to symbols, such as lamda!
+(setq global-prettify-symbols-mode t)
+
+
 
 (setq lsp-clients-clangd-args '("-j=3"
                                 "--background-index"
@@ -101,7 +118,6 @@
 (setq projectile-project-search-path (f-entries "C:/GIT"))
 
 (after! csharp-mode (setq lsp-csharp-server-path "~/.emacs.d/.local/etc/lsp/omnisharp-roslyn/latest/omnisharp-roslyn"))
-
 
 
 
