@@ -47,3 +47,14 @@
 ;; (unpin! pinned-package another-pinned-package)
 ;; ...Or *all* packages (NOT RECOMMENDED; will likely break things)
 ;; (unpin! t)
+(package! copilot
+  :recipe (:host github :repo "copilot-emacs/copilot.el" :files ("*.el" "dist")))
+
+(package! clippy)
+(package! minimap)
+(package! tldr)
+(package! resize-window)
+(package! org-auto-tangle)
+(package! org-web-tools)
+(package! evil-tutor)
+(package! flycheck-aspell)
