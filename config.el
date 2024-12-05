@@ -83,6 +83,8 @@
               ("C-TAB" . 'copilot-accept-completion-by-word)
               ("C-<tab>" . 'copilot-accept-completion-by-word)))
 
+(use-package copilot-chat
+  :after (request org markdown-mode shell-maker))
 
 
 (menu-bar--display-line-numbers-mode-relative)
@@ -119,6 +121,7 @@
 
 (after! csharp-mode (setq lsp-csharp-server-path "~/.emacs.d/.local/etc/lsp/omnisharp-roslyn/latest/omnisharp-roslyn"))
 
+(add-to-list 'auto-mode-alist '("\\.vb\\'" . csharp-mode))
 
 
 (map! :leader

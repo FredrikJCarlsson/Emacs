@@ -58,3 +58,5 @@
 (package! org-web-tools)
 (package! evil-tutor)
 (package! flycheck-aspell)
+(package! copilot-chat
+  :recipe (:host github :repo "chep/copilot-chat.el" :files ("*.el")))
