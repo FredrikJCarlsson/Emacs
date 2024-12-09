@@ -47,8 +47,7 @@
 ;; (unpin! pinned-package another-pinned-package)
 ;; ...Or *all* packages (NOT RECOMMENDED; will likely break things)
 ;; (unpin! t)
-(package! copilot
-  :recipe (:host github :repo "copilot-emacs/copilot.el" :files ("*.el" "dist")))
+(package! copilot :recipe (:host github :repo "copilot-emacs/copilot.el" :files ("*.el" "dist")))
 
 (package! clippy)
 (package! minimap)
@@ -58,5 +57,4 @@
 (package! org-web-tools)
 (package! evil-tutor)
 (package! flycheck-aspell)
-(package! copilot-chat
-  :recipe (:host github :repo "chep/copilot-chat.el" :files ("*.el")))
+(package! copilot-chat :recipe (:host github :repo "chep/copilot-chat.el" :files ("*.el")))
