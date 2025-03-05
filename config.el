@@ -187,3 +187,34 @@
   (org-babel-do-load-languages
    'org-babel-load-languages
    '((sql . t))))
+
+(require 'helm)
+(require 'helm-source)
+(require 'ansi-color)
+
+(defun my-helm-rga-search (&optional arg)
+  "Search inside various file types (including .docx) using ripgrep-all (rga) and display results in Helm.
+If prefix ARG is set, prompt for a directory to search from."
+  (interactive "P")
+  (let* ((default-directory
+           (if arg
+               (read-directory-name "Search directory: ")
+             default-directory))
+         (search-term (read-string "Search with rga: "))
+         (rga-command (format "rga --smart-case --hidden --with-filename --line-number --column --color=always --colors=match:fg:red --colors=match:style:bold %s"
+                              (shell-quote-argument search-term)))
+         (results (split-string (shell-command-to-string rga-command) "\n" t)))
+
+    (helm :sources (helm-build-sync-source "rga Search Results"
+                     :candidates (mapcar #'ansi-color-apply results)  ;; Apply ANSI color formatting
+                     :candidate-number-limit 1000
+                     :action (lambda (candidate)
+                               (let* ((parts (split-string candidate ":" t))
+                                      (file (nth 0 parts))
+                                      (line (nth 1 parts)))
+                                 (when file
+                                   (find-file file)
+                                   (when line
+                                     (goto-line (string-to-number line)))))))
+          :buffer "*helm-rga-search*"
+          :truncate-lines t)))
