@@ -84,17 +84,17 @@
               ("C-<tab>" . 'copilot-accept-completion-by-word)))
 
 (after! (evil copilot)
-  ;; Define the custom function that either accepts the completion or does the default behavior
-  (defun my/copilot-tab-or-default ()
-    (interactive)
-    (if (and (bound-and-true-p copilot-mode)
-             ;; Add any other conditions to check for active copilot suggestions if necessary
-             )
-        (copilot-accept-completion)
-      (evil-insert 1))) ; Default action to insert a tab. Adjust as needed.
+ ;; Define the custom function that either accepts the completion or does the default behavior
+ (defun my/copilot-tab-or-default ()
+   (interactive)
+   (if (and (bound-and-true-p copilot-mode)
+            ;; Add any other conditions to check for active copilot suggestions if necessary
+            )
+       (copilot-accept-completion)
+     (evil-insert 1))) ; Default action to insert a tab. Adjust as needed.
 
-  ;; Bind the custom function to <tab> in Evil's insert state
-  (evil-define-key 'insert 'global (kbd "<tab>") 'my/copilot-tab-or-default))
+ ;; Bind the custom function to <tab> in Evil's insert state
+ (evil-define-key 'insert 'global (kbd "<tab>") 'my/copilot-tab-or-default))
 
 (use-package copilot-chat
   :after (request org markdown-mode shell-maker))
@@ -200,33 +200,39 @@
    'org-babel-load-languages
    '((sql . t))))
 
+
+
+(unless (package-installed-p 'helm)
+ (package-refresh-contents)
+ (package-install 'helm))
+
 (require 'helm)
 (require 'helm-source)
 (require 'ansi-color)
 
 (defun my-helm-rga-search (&optional arg)
-  "Search inside various file types (including .docx) using ripgrep-all (rga) and display results in Helm.
+ "Search inside various file types (including .docx) using ripgrep-all (rga) and display results in Helm.
 If prefix ARG is set, prompt for a directory to search from."
-  (interactive "P")
-  (let* ((default-directory
-           (if arg
-               (read-directory-name "Search directory: ")
-             default-directory))
-         (search-term (read-string "Search with rga: "))
-         (rga-command (format "rga --smart-case --hidden --with-filename --line-number --column --color=always --colors=match:fg:red --colors=match:style:bold %s"
-                              (shell-quote-argument search-term)))
-         (results (split-string (shell-command-to-string rga-command) "\n" t)))
+ (interactive "P")
+ (let* ((default-directory
+          (if arg
+              (read-directory-name "Search directory: ")
+            default-directory))
+        (search-term (read-string "Search with rga: "))
+        (rga-command (format "rga --smart-case --hidden --with-filename --line-number --column --color=always --colors=match:fg:red --colors=match:style:bold %s"
+                             (shell-quote-argument search-term)))
+        (results (split-string (shell-command-to-string rga-command) "\n" t)))
 
-    (helm :sources (helm-build-sync-source "rga Search Results"
-                     :candidates (mapcar #'ansi-color-apply results)  ;; Apply ANSI color formatting
-                     :candidate-number-limit 1000
-                     :action (lambda (candidate)
-                               (let* ((parts (split-string candidate ":" t))
-                                      (file (nth 0 parts))
-                                      (line (nth 1 parts)))
-                                 (when file
-                                   (find-file file)
-                                   (when line
-                                     (goto-line (string-to-number line)))))))
-          :buffer "*helm-rga-search*"
-          :truncate-lines t)))
+   (helm :sources (helm-build-sync-source "rga Search Results"
+                    :candidates (mapcar #'ansi-color-apply results)  ;; Apply ANSI color formatting
+                    :candidate-number-limit 1000
+                    :action (lambda (candidate)
+                              (let* ((parts (split-string candidate ":" t))
+                                     (file (nth 0 parts))
+                                     (line (nth 1 parts)))
+                                (when file
+                                  (find-file file)
+                                  (when line
+                                    (goto-line (string-to-number line)))))))
+         :buffer "*helm-rga-search*"
+         :truncate-lines t)))
