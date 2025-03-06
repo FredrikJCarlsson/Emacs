@@ -83,12 +83,24 @@
               ("C-TAB" . 'copilot-accept-completion-by-word)
               ("C-<tab>" . 'copilot-accept-completion-by-word)))
 
+(after! (evil copilot)
+  ;; Define the custom function that either accepts the completion or does the default behavior
+  (defun my/copilot-tab-or-default ()
+    (interactive)
+    (if (and (bound-and-true-p copilot-mode)
+             ;; Add any other conditions to check for active copilot suggestions if necessary
+             )
+        (copilot-accept-completion)
+      (evil-insert 1))) ; Default action to insert a tab. Adjust as needed.
+
+  ;; Bind the custom function to <tab> in Evil's insert state
+  (evil-define-key 'insert 'global (kbd "<tab>") 'my/copilot-tab-or-default))
+
 (use-package copilot-chat
   :after (request org markdown-mode shell-maker))
 
 
 (menu-bar--display-line-numbers-mode-relative)
-
 
 
 (set-face-attribute 'default nil
@@ -117,7 +129,7 @@
 (after! lsp-clangd (set-lsp-priority! 'clangd 2))
 
 (require 'f)
-(setq projectile-project-search-path (f-entries "C:/Users/fredrik.j.carlsson/Documents/Code"))
+(setq projectile-project-search-path (f-entries "C:/GIT"))
 
 (after! csharp-mode (setq lsp-csharp-server-path "~/.emacs.d/.local/etc/lsp/omnisharp-roslyn/latest/omnisharp-roslyn"))
 
