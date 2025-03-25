@@ -106,7 +106,12 @@
 ;; changes certain keywords to symbols, such as lamda!
 (setq global-prettify-symbols-mode t)
 
+;; Languages
+ 
+(after! dap-mode
+  (require 'dap-dlv-go))
 
+;;#########################
 
 (setq lsp-clients-clangd-args '("-j=3"
                                 "--background-index"
@@ -117,7 +122,7 @@
 (after! lsp-clangd (set-lsp-priority! 'clangd 2))
 
 (require 'f)
-(setq projectile-project-search-path (f-entries "C:/Users/fredrik.j.carlsson/Documents/Code"))
+(setq projectile-project-search-path (f-entries "/Users/fredrikcarlsson/Development"))
 
 (after! csharp-mode (setq lsp-csharp-server-path "~/.emacs.d/.local/etc/lsp/omnisharp-roslyn/latest/omnisharp-roslyn"))
 
@@ -127,7 +132,7 @@
 (map! :leader
       :desc "Org babel tangle" "m B" #'org-babel-tangle)
 (after! org
-  (setq org-directory "~/org/EmacsOrgAgenda"
+  (setq org-directory "~/org"
         org-default-notes-file (expand-file-name "notes.org" org-directory)
         org-ellipsis " ▼ "
         org-superstar-headline-bullets-list '("◉" "●" "○" "◆" "●" "○" "◆")
@@ -153,7 +158,7 @@
 
 
 (after! org
-  (setq org-agenda-files (f-entries "~/org/EmacsOrgAgenda" (lambda (f) (f-ext? f "org")))))
+  (setq org-agenda-files (f-entries "~/org" (lambda (f) (f-ext? f "org")))))
 
 (setq
    ;; org-fancy-priorities-list '("[A]" "[B]" "[C]")
@@ -187,6 +192,24 @@
   (org-babel-do-load-languages
    'org-babel-load-languages
    '((sql . t))))
+
+
+(use-package! websocket
+    :after org-roam)
+
+(use-package! org-roam-ui
+    :after org-roam ;; or :after org
+;;         normally we'd recommend hooking orui after org-roam, but since org-roam does not have
+;;         a hookable mode anymore, you're advised to pick something yourself
+;;         if you don't care about startup time, use
+;;  :hook (after-init . org-roam-ui-mode)
+    :config
+    (setq org-roam-ui-sync-theme t
+          org-roam-ui-follow t
+          org-roam-ui-update-on-save t
+          org-roam-ui-open-on-start t))
+
+
 
 (require 'helm)
 (require 'helm-source)
