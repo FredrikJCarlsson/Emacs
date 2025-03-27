@@ -168,7 +168,6 @@
              "CANCELLED(c)" )))) ; Task has been cancelled
 
 
-
 (after! org
   (setq org-agenda-files (f-entries "~/org" (lambda (f) (f-ext? f "org")))))
 
