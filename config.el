@@ -133,8 +133,10 @@
                                 "--header-insertion-decorators=0"))
 (after! lsp-clangd (set-lsp-priority! 'clangd 2))
 
-(require 'f)
-(setq projectile-project-search-path (f-entries "/Users/fredrikcarlsson/Development"))
+;; Only on macOS
+(when (eq system-type 'darwin)
+  (require 'f)
+  (setq projectile-project-search-path (f-entries "/Users/fredrikcarlsson/Development")))
 
 (after! csharp-mode (setq lsp-csharp-server-path "~/.emacs.d/.local/etc/lsp/omnisharp-roslyn/latest/omnisharp-roslyn"))
 
