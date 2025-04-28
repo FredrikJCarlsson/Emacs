@@ -262,3 +262,20 @@ If prefix ARG is set, prompt for a directory to search from."
                                     (goto-line (string-to-number line)))))))
          :buffer "*helm-rga-search*"
          :truncate-lines t)))
+
+
+
+
+
+(defun my/lsp-roslyn-choose-solution-file ()
+  "Finds all .sln files recursively from project root and lets you pick one for Roslyn."
+  (interactive)
+  (let* ((root (or (lsp-workspace-root) (projectile-project-root) (vc-root-dir)))
+         (solution-files (when root (directory-files-recursively root "\\.sln$"))))
+    (if (not solution-files)
+        (lsp--error "No solution file found in project.")
+      (let ((chosen (if (= (length solution-files) 1)
+                        (car solution-files)
+                      (completing-read "Select solution: " solution-files nil t))))
+        (lsp-notify "solution/open" (list :solution (lsp--path-to-uri chosen)))
+        (message "Opened solution: %s" chosen)))))
