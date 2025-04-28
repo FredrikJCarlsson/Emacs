@@ -32,7 +32,7 @@
 ;; There are two ways to load a theme. Both assume the theme is installed and
 ;; available. You can either set `doom-theme' or manually load a theme with the
 ;; `load-theme' function. This is the default:
-(setq doom-theme 'doom-one)
+(setq doom-theme 'doom-dracula)
 
 ;; This determines the style of line numbers in effect. If set to `nil', line
 ;; numbers are disabled. For relative line numbers, set this to `relative'.
@@ -142,7 +142,6 @@
 
 (add-to-list 'auto-mode-alist '("\\.vb\\'" . csharp-mode))
 
-
 (map! :leader
       :desc "Org babel tangle" "m B" #'org-babel-tangle)
 (after! org
@@ -171,7 +170,10 @@
 
 
 (after! org
-  (setq org-agenda-files (f-entries "~/org" (lambda (f) (f-ext? f "org")))))
+  (setq org-agenda-files (f-entries "~/org" (lambda (f) (f-ext? f "org"))))
+  (add-to-list 'org-file-apps '("docx" . default))
+  (add-to-list 'org-file-apps '("xlsx" . default))
+)
 
 (setq
    ;; org-fancy-priorities-list '("[A]" "[B]" "[C]")
