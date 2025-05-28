@@ -75,6 +75,7 @@
 ;; You can also try 'gd' (or 'C-c c d') to jump to their definition and see how
 ;; they are implemented.
 ;; accept completion from copilot and fallback to company
+;; accept completion from copilot and fallback to company
 (use-package! copilot
   :hook (prog-mode . copilot-mode)
   :bind (:map copilot-completion-map
@@ -83,21 +84,12 @@
               ("C-TAB" . 'copilot-accept-completion-by-word)
               ("C-<tab>" . 'copilot-accept-completion-by-word)))
 
-(after! (evil copilot)
- ;; Define the custom function that either accepts the completion or does the default behavior
- (defun my/copilot-tab-or-default ()
-   (interactive)
-   (if (and (bound-and-true-p copilot-mode)
-            ;; Add any other conditions to check for active copilot suggestions if necessary
-            )
-       (copilot-accept-completion)
-     (evil-insert 1))) ; Default action to insert a tab. Adjust as needed.
 
- ;; Bind the custom function to <tab> in Evil's insert state
- (evil-define-key 'insert 'global (kbd "<tab>") 'my/copilot-tab-or-default))
 
-(use-package copilot-chat
-  :after (request org markdown-mode shell-maker))
+(use-package! gptel)
+;; OPTIONAL configuration
+(setq gptel-model 'gpt-4o
+      gptel-backend (gptel-make-gh-copilot "Copilot"))
 
 
 (menu-bar--display-line-numbers-mode-relative)
@@ -236,46 +228,53 @@
 (require 'helm-source)
 (require 'ansi-color)
 
-(defun my-helm-rga-search (&optional arg)
- "Search inside various file types (including .docx) using ripgrep-all (rga) and display results in Helm.
-If prefix ARG is set, prompt for a directory to search from."
- (interactive "P")
- (let* ((default-directory
-          (if arg
-              (read-directory-name "Search directory: ")
-            default-directory))
-        (search-term (read-string "Search with rga: "))
-        (rga-command (format "rga --smart-case --hidden --with-filename --line-number --column --color=always --colors=match:fg:red --colors=match:style:bold %s"
-                             (shell-quote-argument search-term)))
-        (results (split-string (shell-command-to-string rga-command) "\n" t)))
-
-   (helm :sources (helm-build-sync-source "rga Search Results"
-                    :candidates (mapcar #'ansi-color-apply results)  ;; Apply ANSI color formatting
-                    :candidate-number-limit 1000
-                    :action (lambda (candidate)
-                              (let* ((parts (split-string candidate ":" t))
-                                     (file (nth 0 parts))
-                                     (line (nth 1 parts)))
-                                (when file
-                                  (find-file file)
-                                  (when line
-                                    (goto-line (string-to-number line)))))))
-         :buffer "*helm-rga-search*"
-         :truncate-lines t)))
-
-
-
-
-
-(defun my/lsp-roslyn-choose-solution-file ()
-  "Finds all .sln files recursively from project root and lets you pick one for Roslyn."
+(defun my-helm-rga-search ()
+  "Search inside various file types using ripgrep-all (rga) and display results in Helm.
+Always prompt for a directory to search from."
   (interactive)
-  (let* ((root (or (lsp-workspace-root) (projectile-project-root) (vc-root-dir)))
-         (solution-files (when root (directory-files-recursively root "\\.sln$"))))
-    (if (not solution-files)
-        (lsp--error "No solution file found in project.")
-      (let ((chosen (if (= (length solution-files) 1)
-                        (car solution-files)
-                      (completing-read "Select solution: " solution-files nil t))))
-        (lsp-notify "solution/open" (list :solution (lsp--path-to-uri chosen)))
-        (message "Opened solution: %s" chosen)))))
+  (let* ((search-dir (read-directory-name "Search directory: "))
+         (default-directory search-dir)
+         (search-term (read-string "Search with rga: "))
+         (rga-command (format "rga --smart-case --hidden --with-filename --line-number --column --color=always --colors=match:fg:red --colors=match:style:bold %s"
+                              (shell-quote-argument search-term)))
+         (results (split-string (shell-command-to-string rga-command) "\n" t)))
+    (if results
+        (helm :sources (helm-build-sync-source "rga Search Results"
+                         :candidates (mapcar #'ansi-color-apply results)
+                         :candidate-number-limit 1000
+                         :action (lambda (candidate)
+                                   (let* ((parts (split-string candidate ":" t))
+                                          (file (nth 0 parts))
+                                          (line (nth 1 parts))
+                                          (column (nth 2 parts)))
+                                     (when file
+                                       (find-file file)
+                                       (when line
+                                         (goto-char (point-min))
+                                         (forward-line (1- (string-to-number line)))
+                                         (when column
+                                           (move-to-column (1- (string-to-number column)))))))))
+              :buffer "*helm-rga-search*"
+              :truncate-lines t)
+      (message "No results found for: %s" search-term))))
+
+
+
+
+(defun my/csharp-select-solution ()
+  "Select a .sln file from the Git root and configure Roslyn."
+  (interactive)
+  (let* ((git-root (or (vc-root-dir)
+                       (locate-dominating-file default-directory ".git")))
+         (sln-files (when git-root
+                      (directory-files-recursively git-root "\\.sln$")))
+         (chosen-sln (when sln-files
+                       (completing-read "Choose solution: " sln-files nil t))))
+    (if (not chosen-sln)
+        (message "No solution selected.")
+      (progn
+        (message "Selected solution: %s" chosen-sln)
+        ;; Set init options for csharp-ls
+        (setq lsp-csharp-ls-solution-path chosen-sln)
+        (when (bound-and-true-p lsp-mode)
+          (lsp-restart-workspace))))))

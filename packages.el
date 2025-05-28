@@ -57,7 +57,10 @@
 (package! org-web-tools)
 (package! evil-tutor)
 (package! flycheck-aspell)
-(package! copilot-chat :recipe (:host github :repo "chep/copilot-chat.el" :files ("*.el")))
+(package! gptel :recipe (:nonrecursive t))
+(package! copilot
+  :recipe (:host github :repo "copilot-emacs/copilot.el" :files ("*.el")))
+(package! magit-gptcommit)
 
 (unpin! org-roam)
 (package! org-roam-ui)
