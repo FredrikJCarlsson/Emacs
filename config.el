@@ -32,11 +32,11 @@
 ;; There are two ways to load a theme. Both assume the theme is installed and
 ;; available. You can either set `doom-theme' or manually load a theme with the
 ;; `load-theme' function. This is the default:
-(setq doom-theme 'doom-dracula)
+(setq doom-theme 'doom-one)
 
 ;; This determines the style of line numbers in effect. If set to `nil', line
 ;; numbers are disabled. For relative line numbers, set this to `relative'.
-(setq display-line-numbers-type t)
+(setq display-line-numbers-type 'relative)
 
 ;; If you use `org' and don't want your org files in the default location below,
 ;; change `org-directory'. It must be set before org loads!
@@ -76,15 +76,10 @@
 ;; they are implemented.
 ;; accept completion from copilot and fallback to company
 ;; accept completion from copilot and fallback to company
-(use-package! copilot
-  :hook (prog-mode . copilot-mode)
-  :bind (:map copilot-completion-map
-              ("<tab>" . 'copilot-accept-completion)
-              ("TAB" . 'copilot-accept-completion)
-              ("C-TAB" . 'copilot-accept-completion-by-word)
-              ("C-<tab>" . 'copilot-accept-completion-by-word)))
-
-
+(set-face-attribute 'default nil
+  :font "Hack Nerd Font"
+  :height 120
+  :weight 'medium)
 
 (use-package! gptel)
 ;; OPTIONAL configuration
@@ -92,173 +87,49 @@
       gptel-backend (gptel-make-gh-copilot "Copilot"))
 
 
-(menu-bar--display-line-numbers-mode-relative)
-
-
-(set-face-attribute 'default nil
-  :font "Hack Nerd Font"
-  :height 120
-  :weight 'medium)
-(set-face-attribute 'font-lock-comment-face nil
-  :slant 'italic)
-
 ;; Uncomment the following line if line spacing needs adjusting.
 (setq-default line-spacing 0.12)
 
-;; Needed if using emacsclient. Otherwise, your fonts will be smaller than expected.
-(add-to-list 'default-frame-alist '(font . "Hack Nerd Font"))
+;; ;; Needed if using emacsclient. Otherwise, your fonts will be smaller than expected.
+;; (add-to-list 'default-frame-alist '(font . "Hack Nerd Font"))
 ;; changes certain keywords to symbols, such as lamda!
 (setq global-prettify-symbols-mode t)
 
-;; Languages
- 
+;;; LANGUAGES
+
+;; DAP mode - Go debugging
 (after! dap-mode
   (require 'dap-dlv-go))
 
-;;#########################
+;; C/C++ - Clangd setup
+(after! lsp-clangd
+  (setq lsp-clients-clangd-args
+        '("-j=3"
+          "--background-index"
+          "--clang-tidy"
+          "--completion-style=detailed"
+          "--header-insertion=never"
+          "--header-insertion-decorators=0"))
+  (set-lsp-priority! 'clangd 2))
 
-(setq lsp-clients-clangd-args '("-j=3"
-                                "--background-index"
-                                "--clang-tidy"
-                                "--completion-style=detailed"
-                                "--header-insertion=never"
-                                "--header-insertion-decorators=0"))
-(after! lsp-clangd (set-lsp-priority! 'clangd 2))
+(use-package! f
+  :demand t)
 
-;; Only on macOS
-(when (eq system-type 'darwin)
-  (require 'f)
-  (setq projectile-project-search-path (f-entries "/Users/fredrikcarlsson/Development")))
+(cond
+ ((eq system-type 'darwin)
+  (setq projectile-project-search-path
+        (f-entries "/Users/fredrikcarlsson/Development")))
+ ((eq system-type 'windows-nt)
+  (setq projectile-project-search-path
+        (f-entries "C:/GIT"))))
 
-(after! csharp-mode (setq lsp-csharp-server-path "~/.emacs.d/.local/etc/lsp/omnisharp-roslyn/latest/omnisharp-roslyn"))
+;; C# - Omnisharp LSP setup
+(after! csharp-mode
+  (setq lsp-csharp-server-path
+        "~/.emacs.d/.local/etc/lsp/omnisharp-roslyn/latest/omnisharp-roslyn"))
 
+;; Associate .vb files with csharp-mode (optional)
 (add-to-list 'auto-mode-alist '("\\.vb\\'" . csharp-mode))
-
-(map! :leader
-      :desc "Org babel tangle" "m B" #'org-babel-tangle)
-(after! org
-  (setq org-directory "~/org"
-        org-default-notes-file (expand-file-name "notes.org" org-directory)
-        org-ellipsis " ▼ "
-        org-superstar-headline-bullets-list '("◉" "●" "○" "◆" "●" "○" "◆")
-        org-superstar-itembullet-alist '((?+ . ?➤) (?- . ?✦)) ; changes +/- symbols in item lists
-        org-log-done 'time
-        org-hide-emphasis-markers t
-        ;; ex. of org-link-abbrev-alist in action
-        ;; [[arch-wiki:Name_of_Page][Description]]
-        org-link-abbrev-alist    ; This overwrites the default Doom org-link-abbrev-list
-          '(("google" . "http://www.google.com/search?q=")
-            ("arch-wiki" . "https://wiki.archlinux.org/index.php/")
-            ("ddg" . "https://duckduckgo.com/?q=")
-            ("wiki" . "https://en.wikipedia.org/wiki/"))
-        org-table-convert-region-max-lines 20000
-        org-todo-keywords        ; This overwrites the default Doom org-todo-keywords
-          '((sequence
-             "TODO(t)"           ; A task that is ready to be tackled
-             "WAIT(w)"           ; Something is holding up this task
-             "|"                 ; The pipe necessary to separate "active" states and "inactive" states
-             "DONE(d)"           ; Task has been completed
-             "CANCELLED(c)" )))) ; Task has been cancelled
-
-
-(after! org
-  (setq org-agenda-files (f-entries "~/org" (lambda (f) (f-ext? f "org"))))
-  (add-to-list 'org-file-apps '("docx" . default))
-  (add-to-list 'org-file-apps '("xlsx" . default))
-)
-
-(setq
-   ;; org-fancy-priorities-list '("[A]" "[B]" "[C]")
-   ;; org-fancy-priorities-list '("❗" "[B]" "[C]")
-   org-fancy-priorities-list '("🟥" "🟧" "🟨")
-   org-priority-faces
-   '((?A :foreground "#ff6c6b" :weight bold)
-     (?B :foreground "#98be65" :weight bold)
-     (?C :foreground "#c678dd" :weight bold))
-   org-agenda-block-separator 8411)
-
-(setq org-agenda-custom-commands
-      '(("v" "A better agenda view"
-         ((tags "PRIORITY=\"A\""
-                ((org-agenda-skip-function '(org-agenda-skip-entry-if 'todo 'done))
-                 (org-agenda-overriding-header "High-priority unfinished tasks:")))
-          (tags "PRIORITY=\"B\""
-                ((org-agenda-skip-function '(org-agenda-skip-entry-if 'todo 'done))
-                 (org-agenda-overriding-header "Medium-priority unfinished tasks:")))
-          (tags "PRIORITY=\"C\""
-                ((org-agenda-skip-function '(org-agenda-skip-entry-if 'todo 'done))
-                 (org-agenda-overriding-header "Low-priority unfinished tasks:")))
-          (tags "customtag"
-                ((org-agenda-skip-function '(org-agenda-skip-entry-if 'todo 'done))
-                 (org-agenda-overriding-header "Tasks marked with customtag:")))
-
-          (agenda "")
-          (alltodo "")))))
-
-(after! org
-  (org-babel-do-load-languages
-   'org-babel-load-languages
-   '((sql . t))))
-
-
-(use-package! websocket
-    :after org-roam)
-
-(use-package! org-roam-ui
-    :after org-roam ;; or :after org
-;;         normally we'd recommend hooking orui after org-roam, but since org-roam does not have
-;;         a hookable mode anymore, you're advised to pick something yourself
-;;         if you don't care about startup time, use
-;;  :hook (after-init . org-roam-ui-mode)
-    :config
-    (setq org-roam-ui-sync-theme t
-          org-roam-ui-follow t
-          org-roam-ui-update-on-save t
-          org-roam-ui-open-on-start t))
-
-
-
-
-
-(unless (package-installed-p 'helm)
- (package-refresh-contents)
- (package-install 'helm))
-
-(require 'helm)
-(require 'helm-source)
-(require 'ansi-color)
-
-(defun my-helm-rga-search ()
-  "Search inside various file types using ripgrep-all (rga) and display results in Helm.
-Always prompt for a directory to search from."
-  (interactive)
-  (let* ((search-dir (read-directory-name "Search directory: "))
-         (default-directory search-dir)
-         (search-term (read-string "Search with rga: "))
-         (rga-command (format "rga --smart-case --hidden --with-filename --line-number --column --color=always --colors=match:fg:red --colors=match:style:bold %s"
-                              (shell-quote-argument search-term)))
-         (results (split-string (shell-command-to-string rga-command) "\n" t)))
-    (if results
-        (helm :sources (helm-build-sync-source "rga Search Results"
-                         :candidates (mapcar #'ansi-color-apply results)
-                         :candidate-number-limit 1000
-                         :action (lambda (candidate)
-                                   (let* ((parts (split-string candidate ":" t))
-                                          (file (nth 0 parts))
-                                          (line (nth 1 parts))
-                                          (column (nth 2 parts)))
-                                     (when file
-                                       (find-file file)
-                                       (when line
-                                         (goto-char (point-min))
-                                         (forward-line (1- (string-to-number line)))
-                                         (when column
-                                           (move-to-column (1- (string-to-number column)))))))))
-              :buffer "*helm-rga-search*"
-              :truncate-lines t)
-      (message "No results found for: %s" search-term))))
-
-
 
 
 (defun my/csharp-select-solution ()
@@ -278,3 +149,125 @@ Always prompt for a directory to search from."
         (setq lsp-csharp-ls-solution-path chosen-sln)
         (when (bound-and-true-p lsp-mode)
           (lsp-restart-workspace))))))
+
+
+(setq-default tab-width 4)
+
+;; Copilot - GitHub Copilot integration
+(use-package! copilot
+  :hook (prog-mode . copilot-mode)
+  :bind (:map copilot-completion-map
+              ("<tab>" . 'copilot-accept-completion)
+              ("TAB" . 'copilot-accept-completion)
+              ("C-TAB" . 'copilot-accept-completion-by-word)
+              ("C-<tab>" . 'copilot-accept-completion-by-word)))
+
+
+;; Keybinding for tangling
+(map! :leader
+      :desc "Org babel tangle" "m B" #'org-babel-tangle)
+
+(after! org
+  ;; Basic Org settings
+  (setq org-directory "~/org"
+        org-default-notes-file (expand-file-name "notes.org" org-directory)
+        org-ellipsis " ▼ "
+        org-log-done 'time
+        org-hide-emphasis-markers t
+        org-table-convert-region-max-lines 20000
+
+        ;; Bullets and item styles
+        org-superstar-headline-bullets-list '("◉" "●" "○" "◆" "●" "○" "◆")
+        org-superstar-itembullet-alist '((?+ . ?➤) (?- . ?✦))
+
+        ;; TODO states
+        org-todo-keywords
+        '((sequence
+           "TODO(t)" "WAIT(w)" "|"
+           "DONE(d)" "CANCELLED(c)"))
+
+        ;; Link abbreviations
+        org-link-abbrev-alist
+        '(("google" . "http://www.google.com/search?q=")
+          ("arch-wiki" . "https://wiki.archlinux.org/index.php/")
+          ("ddg" . "https://duckduckgo.com/?q=")
+          ("wiki" . "https://en.wikipedia.org/wiki/"))
+
+        ;; Priority appearance
+        org-fancy-priorities-list '("🟥" "🟧" "🟨")
+        org-priority-faces
+        '((?A :foreground "#ff6c6b" :weight bold)
+          (?B :foreground "#98be65" :weight bold)
+          (?C :foreground "#c678dd" :weight bold))
+
+        ;; Agenda appearance
+        org-agenda-block-separator 8411)
+
+  ;; Load org babel languages
+  (org-babel-do-load-languages
+   'org-babel-load-languages
+   '((sql . t)))
+
+  ;; Agenda sources
+  (when (require 'f nil t)  ; only if `f` is available
+    (setq org-agenda-files
+          (f-entries org-directory (lambda (f) (f-ext? f "org")))))
+
+  ;; Custom file handlers
+  (add-to-list 'org-file-apps '("docx" . default))
+  (add-to-list 'org-file-apps '("xlsx" . default))
+
+  ;; Custom agenda view
+  (setq org-agenda-custom-commands
+        '(("v" "A better agenda view"
+           ((tags "PRIORITY=\"A\""
+                  ((org-agenda-skip-function '(org-agenda-skip-entry-if 'todo 'done))
+                   (org-agenda-overriding-header "High-priority unfinished tasks:")))
+            (tags "PRIORITY=\"B\""
+                  ((org-agenda-skip-function '(org-agenda-skip-entry-if 'todo 'done))
+                   (org-agenda-overriding-header "Medium-priority unfinished tasks:")))
+            (tags "PRIORITY=\"C\""
+                  ((org-agenda-skip-function '(org-agenda-skip-entry-if 'todo 'done))
+                   (org-agenda-overriding-header "Low-priority unfinished tasks:")))
+            (tags "customtag"
+                  ((org-agenda-skip-function '(org-agenda-skip-entry-if 'todo 'done))
+                   (org-agenda-overriding-header "Tasks marked with customtag:")))
+            (agenda "")
+            (alltodo ""))))))
+
+;; Org-roam UI
+(use-package! websocket
+  :after org-roam)
+
+(use-package! org-roam-ui
+  :after org-roam
+  :config
+  (setq org-roam-ui-sync-theme t
+        org-roam-ui-follow t
+        org-roam-ui-update-on-save t
+        org-roam-ui-open-on-start t))
+
+
+
+;;; TOOLS - RIPGREP WITH HELM
+(use-package! helm
+  :config
+  (require 'helm-source)
+  (require 'ansi-color))
+
+(defun my-helm-rga-search ()
+  "Run ripgrep-all (rga) in the current directory."
+  (interactive)
+  (let ((default-directory (read-directory-name "Search directory: ")))
+    (helm :sources (helm-build-async-source "ripgrep-all"
+                     :candidates-process
+                     (lambda ()
+                       (let ((cmd (format "rga --color=always --line-number --no-heading %s"
+                                          (shell-quote-argument helm-pattern))))
+                         (start-process-shell-command "helm-rga" nil cmd)))
+                     :action '(("Open file" . (lambda (candidate)
+                                                (let ((parts (split-string candidate ":")))
+                                                  (find-file (car parts))
+                                                  (goto-line (string-to-number (cadr parts))))))
+                               ("Copy line" . kill-new)))
+          :buffer "*helm rga*")))
