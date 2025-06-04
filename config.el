@@ -74,8 +74,6 @@
 ;;
 ;; You can also try 'gd' (or 'C-c c d') to jump to their definition and see how
 ;; they are implemented.
-;; accept completion from copilot and fallback to company
-;; accept completion from copilot and fallback to company
 (set-face-attribute 'default nil
   :font "Hack Nerd Font"
   :height 120
