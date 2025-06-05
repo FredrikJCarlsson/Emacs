@@ -121,14 +121,6 @@
   (setq projectile-project-search-path
         (f-entries "C:/GIT"))))
 
-;; C# - Omnisharp LSP setup
-(after! csharp-mode
-  (setq lsp-csharp-server-path
-        "~/.emacs.d/.local/etc/lsp/omnisharp-roslyn/latest/omnisharp-roslyn"))
-
-;; Associate .vb files with csharp-mode (optional)
-(add-to-list 'auto-mode-alist '("\\.vb\\'" . csharp-mode))
-
 
 (defun my/csharp-select-solution ()
   "Select a .sln file from the Git root and configure Roslyn."
