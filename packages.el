@@ -50,6 +50,7 @@
 (package! copilot :recipe (:host github :repo "copilot-emacs/copilot.el" :files ("*.el" "dist")))
 
 (package! clippy)
+(package! helm)
 (package! minimap)
 (package! tldr)
 (package! resize-window)
