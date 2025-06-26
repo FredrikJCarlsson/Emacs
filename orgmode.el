@@ -6,9 +6,12 @@
       :desc "Org babel tangle" "m B" #'org-babel-tangle)
 ;; Org mode configuration
 (after! org
-  ;; Basic Org settings
-  (setq org-directory "~/org"
-        org-default-notes-file (expand-file-name "notes.org" org-directory)
+  (setq org-directory "~/org")
+
+  ;; Create org-directory if missing before accessing its contents
+  (unless (file-exists-p org-directory)
+    (make-directory org-directory t))  ;; Basic Org settings
+  (setq org-default-notes-file (expand-file-name "notes.org" org-directory)
         org-ellipsis " ▼ "
         org-log-done 'time
         org-hide-emphasis-markers t
