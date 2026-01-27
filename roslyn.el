@@ -1,6 +1,10 @@
 ;;; roslyn.el -*- lexical-binding: t; -*-
 
 ;; C# - LSP Roslyn setup"
+(require 'project)
+
+(defvar my/lsp-roslyn--solution-opened nil)
+
 (defun my/lsp-roslyn--find-sln-in-workspace ()
   "Find all .sln files under the LSP workspace root."
   (let ((root (lsp-workspace-root)))
@@ -12,20 +16,23 @@
   (completing-read "Select .sln file: " solution-files nil t))
 
 (defun my/lsp-roslyn-open-solution-file ()
-  "Send a Roslyn 'solution/open' notification based on discovered .sln files."
+  "Send a Roslyn 'solution/open' notification only once per session."
   (interactive)
-  (let ((solutions (my/lsp-roslyn--find-sln-in-workspace)))
-    (cond
-     ((null solutions)
-      (lsp--error "No .sln file found in LSP workspace: %s" (lsp-workspace-root)))
-     ((= (length solutions) 1)
-      (let ((file (car solutions)))
-        (lsp-notify "solution/open" (list :solution (lsp--path-to-uri file)))
-        (lsp--info "Roslyn solution opened: %s" file)))
-     (t
-      (let* ((chosen (my/lsp-roslyn--pick-solution-file-interactively solutions)))
-        (lsp-notify "solution/open" (list :solution (lsp--path-to-uri chosen)))
-        (lsp--info "Roslyn solution opened: %s" chosen))))))
+  (unless my/lsp-roslyn--solution-opened
+    (let ((solutions (my/lsp-roslyn--find-sln-in-workspace)))
+      (cond
+       ((null solutions)
+        (lsp--error "No .sln file found in LSP workspace: %s" (lsp-workspace-root)))
+       ((= (length solutions) 1)
+        (let ((file (car solutions)))
+          (lsp-notify "solution/open" (list :solution (lsp--path-to-uri file)))
+          (setq my/lsp-roslyn--solution-opened t)
+          (lsp--info "Roslyn solution opened: %s" file)))
+       (t
+        (let* ((chosen (my/lsp-roslyn--pick-solution-file-interactively solutions)))
+          (lsp-notify "solution/open" (list :solution (lsp--path-to-uri chosen)))
+          (setq my/lsp-roslyn--solution-opened t)
+          (lsp--info "Roslyn solution opened: %s" chosen)))))))
 
 
 (defun custom-lsp-roslyn--on-initialized (workspace)
@@ -41,3 +48,9 @@
                )))))
 
 (advice-add 'lsp-roslyn--on-initialized :override #'custom-lsp-roslyn--on-initialized)
+
+;; Or for project.el in Emacs 29+
+(add-to-list 'project-find-functions
+             (lambda (dir)
+               (when (locate-dominating-file dir "*.sln")
+                 (cons 'vc (locate-dominating-file dir "*.sln")))))

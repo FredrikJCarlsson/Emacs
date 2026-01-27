@@ -55,8 +55,13 @@
           (f-entries org-directory (lambda (f) (f-ext? f "org")))))
 
   ;; Custom file handlers
-  (add-to-list 'org-file-apps '("docx" . default))
-  (add-to-list 'org-file-apps '("xlsx" . default))
+(after! org
+  (dolist (ext '("docx" "xlsx" "pdf"))
+    (add-to-list
+     'org-file-apps
+     `(,(concat "\\." ext "\\'")
+       . (lambda (file) (w32-shell-execute "open" (expand-file-name file)))))))
+
 
   ;; Custom agenda view
   (setq org-agenda-custom-commands

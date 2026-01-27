@@ -9,9 +9,10 @@
           "--header-insertion-decorators=0"))
   (set-lsp-priority! 'clangd 2))
 
+(require 'dap-mode)
+
 (after! dap-mode
   (require 'dap-cpptools))
-
 
 (dap-register-debug-template
  "(gdb) Launch UP2210V3"
