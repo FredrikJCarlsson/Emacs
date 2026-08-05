@@ -59,9 +59,10 @@
 (package! evil-tutor)
 (package! flycheck-aspell)
 (package! gptel :recipe (:nonrecursive t))
-(package! copilot
-  :recipe (:host github :repo "copilot-emacs/copilot.el" :files ("*.el")))
 (package! magit-gptcommit)
+(package! agent-shell)
 
 (unpin! org-roam)
 (package! org-roam-ui)
+;; (package! devcontainer)
+

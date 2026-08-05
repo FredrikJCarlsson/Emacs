@@ -36,7 +36,7 @@
 
 
 (defun custom-lsp-roslyn--on-initialized (workspace)
-  (lsp-roslyn-open-solution-file)
+  (my/lsp-roslyn-open-solution-file)
   (with-lsp-workspace workspace
     (lsp--set-configuration
      #s(hash-table
@@ -50,7 +50,11 @@
 (advice-add 'lsp-roslyn--on-initialized :override #'custom-lsp-roslyn--on-initialized)
 
 ;; Or for project.el in Emacs 29+
-(add-to-list 'project-find-functions
-             (lambda (dir)
-               (when (locate-dominating-file dir "*.sln")
-                 (cons 'vc (locate-dominating-file dir "*.sln")))))
+(defun my/project-find-sln-root (dir)
+  "Treat the nearest ancestor of DIR containing a .sln file as a project root."
+  (when-let ((root (locate-dominating-file
+                    dir
+                    (lambda (d) (directory-files d nil "\\.sln\\'" t)))))
+    (cons 'vc root)))
+
+(add-to-list 'project-find-functions #'my/project-find-sln-root)

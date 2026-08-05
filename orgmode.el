@@ -4,13 +4,20 @@
 ;; Keybinding for tangling
 (map! :leader
       :desc "Org babel tangle" "m B" #'org-babel-tangle)
+
+;; Must be set *before* org loads, so it lives outside the `after!' block.
+(setq org-directory
+      (if (eq system-type 'windows-nt)
+          (expand-file-name "~/OneDrive - Unipower AB/org/roam")
+        (expand-file-name "~/org")))
+
+;; Create org-directory if missing before accessing its contents
+(unless (file-exists-p org-directory)
+  (make-directory org-directory t))
+
 ;; Org mode configuration
 (after! org
-  (setq org-directory "~/org")
-
-  ;; Create org-directory if missing before accessing its contents
-  (unless (file-exists-p org-directory)
-    (make-directory org-directory t))  ;; Basic Org settings
+  ;; Basic Org settings
   (setq org-default-notes-file (expand-file-name "notes.org" org-directory)
         org-ellipsis " ▼ "
         org-log-done 'time
@@ -49,19 +56,19 @@
    'org-babel-load-languages
    '((sql . t)))
 
-  ;; Agenda sources
+  ;; Agenda sources -- every .org under `org-directory', including subdirs.
   (when (require 'f nil t)  ; only if `f` is available
     (setq org-agenda-files
-          (f-entries org-directory (lambda (f) (f-ext? f "org")))))
+          (f-files org-directory (lambda (f) (f-ext? f "org")) t)))
 
-  ;; Custom file handlers
-(after! org
-  (dolist (ext '("docx" "xlsx" "pdf"))
-    (add-to-list
-     'org-file-apps
-     `(,(concat "\\." ext "\\'")
-       . (lambda (file) (w32-shell-execute "open" (expand-file-name file)))))))
-
+  ;; Custom file handlers -- open office/pdf files in the OS default app
+  (when (eq system-type 'windows-nt)
+    (dolist (ext '("docx" "xlsx" "pdf"))
+      (add-to-list
+       'org-file-apps
+       `(,(concat "\\." ext "\\'")
+         . (lambda (file &rest _)
+             (w32-shell-execute "open" (expand-file-name file)))))))
 
   ;; Custom agenda view
   (setq org-agenda-custom-commands

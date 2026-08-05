@@ -4,8 +4,7 @@
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(helm-minibuffer-history-key "M-p")
- '(ignored-local-variable-values '((eval progn (pp-buffer) (indent-buffer))))
- '(org-agenda-files '("~/OneDrive - Unipower AB/org/roam/TODO 2025.org")))
+ '(ignored-local-variable-values '((eval progn (pp-buffer) (indent-buffer)))))
 
 (custom-set-faces
  ;; custom-set-faces was added by Custom.

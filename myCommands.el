@@ -19,6 +19,8 @@
                      :action '(("Open file" . (lambda (candidate)
                                                 (let ((parts (split-string candidate ":")))
                                                   (find-file (car parts))
-                                                  (goto-line (string-to-number (cadr parts))))))
+                                                  (goto-char (point-min))
+                                                  (forward-line
+                                                   (1- (string-to-number (cadr parts)))))))
                                ("Copy line" . kill-new)))
           :buffer "*helm rga*")))

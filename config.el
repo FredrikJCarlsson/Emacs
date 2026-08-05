@@ -40,7 +40,8 @@
 
 ;; If you use `org' and don't want your org files in the default location below,
 ;; change `org-directory'. It must be set before org loads!
-(setq org-directory "~/org/")
+;; NOTE: the real value lives in orgmode.el, which is loaded at the end of this
+;; file -- keep it in one place.
 
 
 ;; Whenever you reconfigure a package, make sure to wrap your config in an
@@ -74,14 +75,12 @@
 ;;
 ;; You can also try 'gd' (or 'C-c c d') to jump to their definition and see how
 ;; they are implemented.
-(set-face-attribute 'default nil
-  :font "Hack Nerd Font"
-  :height 120
-  :weight 'medium)
+(setq doom-font (font-spec :family "Hack Nerd Font" :size 14 :weight 'medium))
 
-(use-package! gptel)
-(setq gptel-model 'gpt-4o
-      gptel-backend (gptel-make-gh-copilot "Copilot"))
+(use-package! gptel
+  :config
+  (setq gptel-model 'gpt-4o
+        gptel-backend (gptel-make-gh-copilot "Copilot")))
 
 (setq-default tab-width 4)
 
@@ -91,7 +90,7 @@
 ;; ;; Needed if using emacsclient. Otherwise, your fonts will be smaller than expected.
 ;; (add-to-list 'default-frame-alist '(font . "Hack Nerd Font"))
 ;; changes certain keywords to symbols, such as lamda!
-(setq global-prettify-symbols-mode t)
+(global-prettify-symbols-mode 1)
 
 ;; DAP mode - Go debugging
 (after! dap-mode
@@ -102,18 +101,15 @@
   :demand t)
 
 ;; Projectile - Project management
-(cond
- ((eq system-type 'darwin)
-  (setq projectile-project-search-path
-        (f-entries "/Users/fredrikcarlsson/Development")))
- ((eq system-type 'windows-nt)
-  (setq projectile-project-search-path
-        (f-entries "C:/GIT"))))
+(let ((dev-root (cond ((eq system-type 'darwin) "/Users/fredrikcarlsson/Development")
+                      ((eq system-type 'windows-nt) "C:/GIT"))))
+  (when (and dev-root (file-directory-p dev-root))
+    (setq projectile-project-search-path (f-directories dev-root))))
 
 
 
 ;; Copilot - GitHub Copilot integration
-(use-package! copilot
+(use-package copilot
   :hook (prog-mode . copilot-mode)
   :bind (:map copilot-completion-map
               ("<tab>" . 'copilot-accept-completion)
@@ -121,7 +117,12 @@
               ("C-TAB" . 'copilot-accept-completion-by-word)
               ("C-<tab>" . 'copilot-accept-completion-by-word)))
 
-
+(use-package agent-shell
+    :ensure t
+    :ensure-system-package
+    ;; Add agent installation configs here
+    ((claude . "brew install claude-code")
+     (claude-agent-acp . "npm install -g @agentclientprotocol/claude-agent-acp")))
 
 ;;Languages
 (load! "roslyn.el")
