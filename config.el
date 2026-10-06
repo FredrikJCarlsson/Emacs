@@ -33,35 +33,54 @@
 ;; available. You can either set `doom-theme' or manually load a theme with the
 ;; `load-theme' function. This is the default:
 (setq doom-theme 'doom-one)
+;; Specify both a dark and light theme, like so and Doom will choose which one
+;; to load based on your system light/dark setting:
+;;
+;;   (setq doom-theme '(doom-one   . doom-one-light))   ; (DARK . LIGHT)
+;;
+;; If you want more pro-active theme switching based on OS light/dark mode, look
+;; up the `auto-dark' package.
 
 ;; This determines the style of line numbers in effect. If set to `nil', line
 ;; numbers are disabled. For relative line numbers, set this to `relative'.
 (setq display-line-numbers-type 'relative)
 
-;; If you use `org' and don't want your org files in the default location below,
-;; change `org-directory'. It must be set before org loads!
-;; NOTE: the real value lives in orgmode.el, which is loaded at the end of this
-;; file -- keep it in one place.
+(setq doom-font (font-spec :family "Hack Nerd Font" :size 14 :weight 'medium))
+(setq-default tab-width 4
+              line-spacing 0.12)
+;; changes certain keywords to symbols, such as lambda
+(global-prettify-symbols-mode 1)
+
+;; f.el for file operations (used below and in orgmode.el)
+(use-package! f
+  :demand t)
+
+;; Projectile - Project management
+(let ((dev-root (cond ((eq system-type 'darwin) "/Users/fredrikcarlsson/Development")
+                      ((eq system-type 'windows-nt) "C:/GIT"))))
+  (when (and dev-root (file-directory-p dev-root))
+    (setq projectile-project-search-path (f-directories dev-root))))
+
+;; `org-directory' is set per OS in orgmode.el.
 
 
 ;; Whenever you reconfigure a package, make sure to wrap your config in an
-;; `after!' block, otherwise Doom's defaults may override your settings. E.g.
+;; `with-eval-after-load' block, otherwise Doom's defaults may override your
+;; settings. E.g.
 ;;
-;;   (after! PACKAGE
+;;   (with-eval-after-load 'PACKAGE
 ;;     (setq x y))
 ;;
 ;; The exceptions to this rule:
 ;;
 ;;   - Setting file/directory variables (like `org-directory')
 ;;   - Setting variables which explicitly tell you to set them before their
-;;     package is loaded (see 'C-h v VARIABLE' to look up their documentation).
+;;     package is loaded (see 'C-h v VARIABLE' to look them up).
 ;;   - Setting doom variables (which start with 'doom-' or '+').
 ;;
 ;; Here are some additional functions/macros that will help you configure Doom.
 ;;
 ;; - `load!' for loading external *.el files relative to this one
-;; - `use-package!' for configuring packages
-;; - `after!' for running code after a package has loaded
 ;; - `add-load-path!' for adding directories to the `load-path', relative to
 ;;   this file. Emacs searches the `load-path' when you load packages with
 ;;   `require' or `use-package'.
@@ -75,58 +94,202 @@
 ;;
 ;; You can also try 'gd' (or 'C-c c d') to jump to their definition and see how
 ;; they are implemented.
-(setq doom-font (font-spec :family "Hack Nerd Font" :size 14 :weight 'medium))
 
-(use-package! gptel
+
+;;; WSL: always open URLs in the Windows default browser, never a Linux/GTK
+;;; one. Absolute path because the Doom env PATH has no /mnt/c entries.
+(defun +wsl-browse-url-windows (url &rest _)
+  "Open URL in the Windows default browser."
+  (let ((default-directory "/mnt/c/"))  ; avoid UNC cwd warnings
+    (start-process "windows-browser" nil "/mnt/c/Windows/explorer.exe" url)))
+
+(when (getenv "WSL_DISTRO_NAME")
+  (setq browse-url-browser-function #'+wsl-browse-url-windows
+        browse-url-secondary-browser-function #'+wsl-browse-url-windows
+        browse-url-handlers nil))
+
+
+;;; VS Code tasks/launch + dev container debugging
+(load! "+vscode")
+
+(map! :leader
+      (:prefix ("v" . "vscode")
+       :desc "Run task"            "t" #'+vscode-run-task
+       :desc "Build (default)"     "b" #'+vscode-build
+       :desc "Test (default)"      "T" #'+vscode-test
+       :desc "Launch / debug"      "d" #'+vscode-launch
+       :desc "Launch, skip task"   "D" #'+vscode-launch-skip-task
+       :desc "Toggle breakpoint"   "p" #'dape-breakpoint-toggle
+       :desc "Debug REPL"          "r" #'dape-repl
+       :desc "Quit debugger"       "q" #'dape-quit))
+
+(defun +vscode-f5 ()
+  (interactive)
+  (if (and (featurep 'dape) (dape--live-connection 'last t))
+      (call-interactively #'dape-continue)
+    (call-interactively #'+vscode-launch)))
+
+(map! "<f5>"    #'+vscode-f5
+      "S-<f5>"  #'dape-quit
+      "<f9>"    #'dape-breakpoint-toggle
+      "<f10>"   #'dape-next
+      "<f11>"   #'dape-step-in
+      "S-<f11>" #'dape-step-out)
+
+;;; Claude Code (agent-shell over ACP)
+(use-package! agent-shell
+  :commands (agent-shell agent-shell-anthropic-start-claude-code)
+  :init
+  (map! :leader :desc "Claude Code" "o c" #'agent-shell-anthropic-start-claude-code)
   :config
-  (setq gptel-model 'gpt-4o
-        gptel-backend (gptel-make-gh-copilot "Copilot")))
+  (setq agent-shell-anthropic-authentication
+        (agent-shell-anthropic-make-authentication :login t)
+        agent-shell-path-resolver-function #'+agent-shell-tramp-resolve-path
+        agent-shell-transcript-file-path-function #'+agent-shell-transcript-path))
 
-(setq-default tab-width 4)
+;; Transcripts are appended to on every agent update. TRAMP can't append, so
+;; for /docker: projects each append re-copied the whole file and froze the UI.
+;; Keep remote projects' transcripts on the local disk instead.
+(defun +agent-shell-transcript-path ()
+  (let ((cwd (agent-shell-cwd)))
+    (if-let* ((host (file-remote-p cwd 'host)))
+        (let ((dir (expand-file-name
+                    (file-name-concat host (file-name-nondirectory
+                                            (directory-file-name (file-local-name cwd))))
+                    (concat doom-cache-dir "agent-shell-transcripts/"))))
+          (make-directory dir t)
+          (expand-file-name (format-time-string "%F-%H-%M-%S.md") dir))
+      (agent-shell--default-transcript-file-path))))
 
-;; Uncomment the following line if line spacing needs adjusting.
-(setq-default line-spacing 0.12)
+(defun +agent-shell-tramp-resolve-path (path)
+  "Map /docker:host:/x <-> /x when the agent-shell project is on TRAMP."
+  (if-let* ((remote (file-remote-p (agent-shell-cwd))))
+      (if (file-remote-p path) (file-local-name path) (concat remote path))
+    path))
 
-;; ;; Needed if using emacsclient. Otherwise, your fonts will be smaller than expected.
-;; (add-to-list 'default-frame-alist '(font . "Hack Nerd Font"))
-;; changes certain keywords to symbols, such as lamda!
-(global-prettify-symbols-mode 1)
+;; claude-agent-acp is installed in the container's ~/.local/bin (persistent
+;; home volume); let TRAMP's executable lookup find it there. TRAMP doesn't
+;; expand "~" here, so the path is spelled out.
+(after! tramp
+  (add-to-list 'tramp-remote-path "/home/developer/.local/bin" t))
 
-;; DAP mode - Go debugging
-(after! dap-mode
-  (require 'dap-dlv-go))
+;; TRAMP's docker method gives processes a TTY, which corrupts ACP's JSON
+;; stream. For /docker: projects, start the agent from the host through a
+;; plain `docker exec -i' pipe instead.
+(defadvice! +acp-docker-pipe-a (fn &rest args)
+  :around #'acp--start-client
+  (let ((client (plist-get args :client))
+        (dir default-directory))
+    (if (and client
+             (equal (file-remote-p dir 'method) "docker")
+             (not (equal (map-elt client :command) "docker")))
+        (let ((default-directory temporary-file-directory))
+          (map-put! client :command-params
+                    (append (list "exec" "-i")
+                            (when-let* ((u (file-remote-p dir 'user))) (list "-u" u))
+                            (mapcan (lambda (e) (list "-e" e))
+                                    (map-elt client :environment-variables))
+                            (list "-w" (directory-file-name (file-local-name dir))
+                                  (file-remote-p dir 'host)
+                                  "bash" "-lc" "PATH=\"$HOME/.local/bin:$PATH\" exec \"$@\"" "sh"
+                                  (map-elt client :command))
+                            (map-elt client :command-params)))
+          (map-put! client :command "docker")
+          (apply fn args))
+      (apply fn args))))
 
-;; load f.el for file operations
-(use-package! f
-  :demand t)
+;; Project roots on TRAMP come back abbreviated as "/docker:host:~/...".
+;; `docker exec -w' rejects a non-absolute cwd, so eglot/clangd (and vc)
+;; die on startup. Expand the root so the remote cwd is absolute.
+(defadvice! +tramp-expand-project-root-a (root)
+  :filter-return #'project-root
+  (if (and root (file-remote-p root)) (expand-file-name root) root))
 
-;; Projectile - Project management
-(let ((dev-root (cond ((eq system-type 'darwin) "/Users/fredrikcarlsson/Development")
-                      ((eq system-type 'windows-nt) "C:/GIT"))))
-  (when (and dev-root (file-directory-p dev-root))
-    (setq projectile-project-search-path (f-directories dev-root))))
+;;; gptel via GitHub Copilot (business plan). First use prompts for a
+;;; device-code login (or run M-x gptel-gh-login).
+(after! gptel
+  (setq gptel-model 'claude-sonnet-5.5
+        gptel-backend (gptel-make-gh-copilot "Copilot"
+                        :host "api.business.githubcopilot.com"
+                        ;; gptel's built-in list lags behind Copilot's; add
+                        ;; newer models here.
+                        :models (append
+                                 '((claude-sonnet-5.5
+                                    :description "Latest Sonnet"
+                                    :capabilities (media tool-use cache)
+                                    :mime-types ("image/jpeg" "image/png" "image/gif"
+                                                 "image/webp" "application/pdf")
+                                    :context-window 1000))
+                                 gptel--gh-models))))
 
+;;; gptel-quick ("Explain" in the llm leader menu): explain in a popup at point instead of the
+;;; echo area. Press + in the popup for a longer answer, M-w to copy.
+(after! gptel-quick
+  (setq gptel-quick-display 'posframe
+        gptel-quick-word-count 60
+        gptel-quick-timeout 30))
 
+;;; Tree-sitter: this Emacs's libtree-sitter only loads grammar ABI 13-14,
+;;; but the default sources pin commits that build ABI 15 (rejected, so Emacs
+;;; re-prompts to install on every file). Pin the last ABI-14 releases instead.
+(defun +treesit-pin-abi14-sources-h ()
+  (when (< (treesit-library-abi-version) 15)
+    (dolist (src '((c       "https://github.com/tree-sitter/tree-sitter-c"       "v0.23.6")
+                   (cpp     "https://github.com/tree-sitter/tree-sitter-cpp"     "v0.23.4")
+                   ;; Emacs's own pin (ABI 14). Doom's v0.20.0 is too old for
+                   ;; csharp-ts-mode's font-lock rules.
+                   (c-sharp "https://github.com/tree-sitter/tree-sitter-c-sharp"
+                            :commit "362a8a41b265056592a0c3771664a21d23a71392")))
+      (setf (alist-get (car src) treesit-language-source-alist) (cdr src)))))
+(after! treesit (+treesit-pin-abi14-sources-h))
+(after! c-ts-mode (+treesit-pin-abi14-sources-h))
 
-;; Copilot - GitHub Copilot integration
-(use-package copilot
+;;; Copilot inline completion (copilot.el). Run M-x copilot-install-server
+;;; once, then M-x copilot-login.
+(use-package! copilot
   :hook (prog-mode . copilot-mode)
-  :bind (:map copilot-completion-map
-              ("<tab>" . 'copilot-accept-completion)
-              ("TAB" . 'copilot-accept-completion)
-              ("C-TAB" . 'copilot-accept-completion-by-word)
-              ("C-<tab>" . 'copilot-accept-completion-by-word)))
+  :config
+  ;; The server always runs on the WSL host (also for /docker: TRAMP buffers),
+  ;; but copilot.el searches the *remote* PATH when visiting a TRAMP file.
+  ;; Resolve the local binary once so it's always found.
+  (setq copilot-indent-offset-warning-disable t
+        copilot-server-executable
+        (let ((default-directory "~/"))
+          (or (executable-find "copilot-language-server")
+              copilot-server-executable)))
+  (map! :map copilot-completion-map
+        "<tab>"   #'copilot-accept-completion
+        "TAB"     #'copilot-accept-completion
+        "C-<tab>" #'copilot-accept-completion-by-word
+        "C-TAB"   #'copilot-accept-completion-by-word
+        "M-n"     #'copilot-next-completion
+        "M-p"     #'copilot-previous-completion))
 
-(use-package agent-shell
-    :ensure t
-    :ensure-system-package
-    ;; Add agent installation configs here
-    ((claude . "brew install claude-code")
-     (claude-agent-acp . "npm install -g @agentclientprotocol/claude-agent-acp")))
+;;; mu4e: work mail (Microsoft 365) via mbsync (~/.mbsyncrc) + msmtp
+;;; (~/.msmtprc), both authenticating with OAuth2 through
+;;; ~/.local/bin/outlook-oauth2. mu/mu4e 1.12 is built from source because
+;;; Ubuntu's 1.6 doesn't load in Emacs 32.
+(when (file-directory-p "/usr/local/share/emacs/site-lisp/mu4e")
+  (add-to-list 'load-path "/usr/local/share/emacs/site-lisp/mu4e"))
 
-;;Languages
-(load! "roslyn.el")
-(load! "clangd.el")
+(setq sendmail-program (executable-find "msmtp")
+      send-mail-function #'sendmail-send-it
+      message-send-mail-function #'sendmail-send-it
+      message-sendmail-f-is-evil t
+      message-sendmail-extra-arguments '("--read-envelope-from"))
 
-(load! "orgmode.el")
-(load! "myCommands.el")
+(set-email-account! "unipower"
+  '((user-full-name         . "Fredrik J. Carlsson")
+    (user-mail-address      . "fredrik.j.carlsson@unipower.se")
+    (smtpmail-smtp-user     . "fredrik.j.carlsson@unipower.se")
+    (mu4e-sent-folder       . "/unipower/Sent Items")
+    (mu4e-drafts-folder     . "/unipower/Drafts")
+    (mu4e-trash-folder      . "/unipower/Deleted Items")
+    (mu4e-refile-folder     . "/unipower/Archive")
+    ;; Exchange already files sent mail in Sent Items; don't save a 2nd copy.
+    (mu4e-sent-messages-behavior . delete))
+  t)
+
+;;; Org mode and personal commands
+(load! "orgmode")
+(load! "myCommands")
