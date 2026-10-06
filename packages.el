@@ -52,24 +52,22 @@
 ;; ...Or *all* packages (NOT RECOMMENDED; will likely break things)
 ;; (unpin! t)
 
-(package! shell-maker)
-(package! acp)
 (package! agent-shell)
 (package! copilot
   :recipe (:host github :repo "copilot-emacs/copilot.el" :files ("*.el")))
 (package! posframe)  ; gptel-quick shows explanations in a popup at point
 
-(package! clippy)
-(package! helm)
-(package! minimap)
 (package! tldr)
 (package! resize-window)
 (package! org-auto-tangle)
 (package! org-web-tools)
-(package! evil-tutor)
 (package! flycheck-aspell)
 (package! magit-gptcommit)
 
 (unpin! org-roam)
 (package! org-roam-ui)
+;; org-roam-ui needs simple-httpd, whose repo shares the name
+;; "emacs-web-server" with an unrelated package; give it its own checkout.
+(package! simple-httpd
+  :recipe (:host github :repo "skeeto/emacs-web-server" :local-repo "simple-httpd"))
 ;; (package! devcontainer)

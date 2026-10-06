@@ -160,7 +160,7 @@
        ;;nix               ; I hereby declare "nix geht mehr!"
        ;;ocaml             ; an objective camel
        ;;odin              ; C, minus its footguns
-       (org +roam2 +pandoc +dragndrop +pretty) ; organize your plain life in plain text
+       (org +roam +pandoc +dragndrop +pretty) ; organize your plain life in plain text
        ;;php               ; perl's insecure younger brother
        ;;plantuml          ; diagrams for confusing people more
        ;;graphviz          ; diagrams for confusing yourself even more
@@ -179,11 +179,11 @@
        sh                ; she sells {ba,z,fi}sh shells on the C xor
        ;;sml
        ;;solidity          ; do you need a blockchain? No.
-       swift             ; who asked for emoji variables?
+       ;;swift             ; who asked for emoji variables?
        ;;terra             ; Earth and Moon in alignment for performance.
        web               ; the tubes
        ;;yaml              ; JSON, but readable
-       zig               ; C, but simpler
+       ;;zig               ; C, but simpler
 
        :email
        (mu4e +org +gmail +mbsync)
