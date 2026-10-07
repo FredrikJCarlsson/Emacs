@@ -45,7 +45,8 @@
 ;; numbers are disabled. For relative line numbers, set this to `relative'.
 (setq display-line-numbers-type 'relative)
 
-(setq doom-font (font-spec :family "Hack Nerd Font" :size 14 :weight 'medium))
+(setq doom-font (font-spec :family "Hack Nerd Font" :size 15 :weight 'medium))
+(setq doom-big-font (font-spec :family "Hack Nerd Font" :size 17 :weight 'medium))
 (setq-default tab-width 4
               line-spacing 0.12)
 ;; changes certain keywords to symbols, such as lambda
@@ -229,6 +230,24 @@
         gptel-quick-word-count 60
         gptel-quick-timeout 30))
 
+;;; Explai (lisp/explai.el): explain / ask about code, trace callers and find
+;;; implementations in a popup next to the code, through the gptel backend above.
+;;; In the popup: ESC close, M-w copy, M-m more, M-o open as buffer, M-j jump.
+(add-load-path! "lisp")
+(use-package! explai
+  :commands (explai-explain explai-explain-detailed explai-ask explai-callers
+             explai-find explai-last explai-model explai-close)
+  :init
+  (map! :leader
+        (:prefix ("o" . "open")
+         (:prefix ("l" . "llm")
+          :desc "Explain"                "e" #'explai-explain
+          :desc "Explain in detail"      "E" #'explai-explain-detailed
+          :desc "Ask about code"         "q" #'explai-ask
+          :desc "Trace callers"          "k" #'explai-callers
+          :desc "Find implementation"    "i" #'explai-find
+          :desc "Show last Explai popup" "p" #'explai-last))))
+
 ;;; Tree-sitter: this Emacs's libtree-sitter only loads grammar ABI 13-14,
 ;;; but the default sources pin commits that build ABI 15 (rejected, so Emacs
 ;;; re-prompts to install on every file). Pin the last ABI-14 releases instead.
@@ -289,6 +308,32 @@
     ;; Exchange already files sent mail in Sent Items; don't save a 2nd copy.
     (mu4e-sent-messages-behavior . delete))
   t)
+
+;;; C#: run csharp-ls on the closest .sln, not the whole repo. PQSecure.NET's
+;;; root pqsecure.All.sln has ~90 projects; sub-solutions load far faster.
+(defun +csharp-nearest-sln (dir)
+  "Return the first .sln/.slnx found walking up from DIR, or nil."
+  (when-let* ((root (locate-dominating-file
+                     dir (lambda (d) (directory-files d nil "\\.slnx?\\'" t)))))
+    (car (directory-files root t "\\.slnx?\\'"))))
+
+(defun +csharp-project-find (dir)
+  "Treat the directory of the nearest solution as the project (for eglot)."
+  (when-let* ((sln (+csharp-nearest-sln dir)))
+    (cons 'transient (file-name-directory sln))))
+
+;; Buffer-local, so only C# buffers see the solution dir as their project;
+;; projectile (SPC p) keeps using the git root.
+(add-hook! '(csharp-mode-hook csharp-ts-mode-hook)
+  (add-hook 'project-find-functions #'+csharp-project-find nil t))
+
+(after! eglot
+  (add-to-list 'eglot-server-programs
+               `((csharp-mode csharp-ts-mode)
+                 . ,(lambda (&rest _)
+                      (if-let* ((sln (+csharp-nearest-sln default-directory)))
+                          (list "csharp-ls" "--solution" (file-local-name sln))
+                        '("csharp-ls"))))))
 
 ;;; Org mode and personal commands
 (load! "orgmode")

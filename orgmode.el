@@ -8,7 +8,7 @@
 ;; Must be set *before* org loads, so it lives outside the `after!' block.
 (setq org-directory
       (if (eq system-type 'windows-nt)
-          (expand-file-name "~/OneDrive - Unipower AB/org/roam")
+          (expand-file-name "~/OneDrive - Unipower AB/org")
         (expand-file-name "~/org")))
 
 ;; Create org-directory if missing before accessing its contents
